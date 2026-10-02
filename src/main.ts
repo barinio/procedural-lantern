@@ -60,7 +60,7 @@ window.addEventListener('resize', () => {
   postfx.resize(w, h);
 });
 
-(window as unknown as { __lantern: unknown }).__lantern = { camera, controls, renderer, scene };
+(window as unknown as { __lantern: unknown }).__lantern = { camera, controls, renderer, scene, postfx, flame };
 
 const timer = new Timer();
 timer.connect(document);
@@ -68,5 +68,5 @@ renderer.setAnimationLoop((time) => {
   timer.update(time);
   flame.update(timer.getElapsed());
   controls.update(timer.getDelta());
-  postfx.composer.render();
+  postfx.render();
 });

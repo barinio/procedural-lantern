@@ -17,9 +17,10 @@ Press `g` to show or hide the tweak panel (lil-gui).
 
 - **Geometry:** lathe profiles (reservoir, gallery, burner, glass chimney, cap, knurled wheel). Tubes along Catmull-Rom curves for the frame wires and the handle. A torus for the ring. Simple primitives for the wick, spindle and ferrules.
 - **Textures:** the brass color map and roughness map are painted on a 2D canvas (seeded blotches and scratches), then used as `CanvasTexture`.
-- **Environment:** `RoomEnvironment` goes through `PMREMGenerator` to give image-based lighting with no HDR file. There is one directional key light with soft shadows, plus a hemisphere fill. The floor is a disk with a radial vertex-color falloff.
+- **Environment:** `RoomEnvironment` goes through `PMREMGenerator` to give image-based lighting with no HDR file. There is one directional key light with soft shadows, plus a hemisphere fill. A gradient backdrop dome (GLSL) sits behind everything. The floor disk blends into the backdrop's horizon color by radius, through an `onBeforeCompile` patch.
 - **Flame:** a `ShaderMaterial` with value-noise fbm written in GLSL, plus a flickering point light. The flame shader is opaque with an alpha cutout, because transmission glass only refracts opaque objects.
-- **Post:** `EffectComposer` → `UnrealBloomPass` → `OutputPass` (ACES tone mapping + sRGB).
+- **Post:** selective bloom. The flame sits on its own layer. A first composer renders the scene with every other mesh blacked out (glass hidden) and blurs it. A second composer adds that glow onto the normal render, then `OutputPass` applies ACES tone mapping + sRGB.
+- **Brass:** `MeshPhysicalMaterial` with anisotropy along the lathe U direction (circular brushing). Real tangents come from `computeTangents()`.
 
 ## Files
 

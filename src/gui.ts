@@ -19,6 +19,8 @@ export function setupGui(
   brass.add(materials.brass, 'roughness', 0, 1, 0.01);
   brass.add(materials.brass, 'metalness', 0, 1, 0.01);
   brass.add(materials.brass, 'envMapIntensity', 0, 3, 0.01);
+  brass.add(materials.brass, 'anisotropy', 0, 1, 0.01);
+  brass.add(materials.brass, 'anisotropyRotation', 0, Math.PI, 0.01);
 
   const glass = gui.addFolder('Glass');
   glass.add(materials.glass, 'transmission', 0, 1, 0.01);
@@ -32,7 +34,7 @@ export function setupGui(
   bloom.add(postfx.bloom, 'threshold', 0, 5, 0.01);
 
   const flameFolder = gui.addFolder('Flame');
-  flameFolder.add(flame.params, 'brightness', 0, 10, 0.1);
+  flameFolder.add(flame.params, 'brightness', 0, 6, 0.05);
   flameFolder.add(flame.params, 'lightIntensity', 0, 0.5, 0.005).name('light intensity');
 
   const view = gui.addFolder('View');

@@ -33,7 +33,10 @@ function shadowed<T extends Object3D>(obj: T, cast = true, receive = true): T {
 }
 
 function lathe(profile: Vector2[], segments = SEGMENTS): LatheGeometry {
-  return new LatheGeometry(profile, segments);
+  const geo = new LatheGeometry(profile, segments);
+  // Real tangents: without them anisotropic brass falls back to per-pixel derivatives and shows facets.
+  geo.computeTangents();
+  return geo;
 }
 
 function frameWire(angle: number): TubeGeometry {
@@ -50,15 +53,22 @@ function frameWire(angle: number): TubeGeometry {
 function handle(): TubeGeometry {
   const curve = new CatmullRomCurve3(
     [
-      new Vector3(-0.047, 0.321, 0),
-      new Vector3(-0.061, 0.365, 0),
-      new Vector3(-0.06, 0.41, 0),
-      new Vector3(-0.04, 0.446, 0),
-      new Vector3(0, 0.46, 0),
-      new Vector3(0.04, 0.446, 0),
-      new Vector3(0.06, 0.41, 0),
-      new Vector3(0.061, 0.365, 0),
-      new Vector3(0.047, 0.321, 0),
+      // ends hook inward through the ears, then a wide half-ellipse ~1.1x the cap diameter
+      new Vector3(-0.054, 0.3155, 0),
+      new Vector3(-0.066, 0.317, 0),
+      new Vector3(-0.084, 0.325, 0),
+      new Vector3(-0.0965, 0.345, 0),
+      new Vector3(-0.095, 0.375, 0),
+      new Vector3(-0.078, 0.406, 0),
+      new Vector3(-0.044, 0.427, 0),
+      new Vector3(0, 0.434, 0),
+      new Vector3(0.044, 0.427, 0),
+      new Vector3(0.078, 0.406, 0),
+      new Vector3(0.095, 0.375, 0),
+      new Vector3(0.0965, 0.345, 0),
+      new Vector3(0.084, 0.325, 0),
+      new Vector3(0.066, 0.317, 0),
+      new Vector3(0.054, 0.3155, 0),
     ],
     false,
     'centripetal',
@@ -143,8 +153,10 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
 
   // Handle ears on the cap and the bail itself
   for (const side of [-1, 1]) {
-    const ear = shadowed(new Mesh(new TorusGeometry(0.0045, 0.0016, 10, 32), brass));
-    ear.position.set(side * 0.047, 0.321, 0);
+    // Ring standing upright on the cap slope, hole facing along X so the bail threads through it
+    const ear = shadowed(new Mesh(new TorusGeometry(0.0046, 0.0015, 10, 32), brass));
+    ear.rotation.y = Math.PI / 2;
+    ear.position.set(side * 0.061, 0.3165, 0);
     root.add(ear);
   }
   root.add(shadowed(new Mesh(handle(), steel)));

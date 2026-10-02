@@ -10,7 +10,7 @@ import {
 } from 'three';
 
 export interface LanternMaterials {
-  brass: MeshStandardMaterial;
+  brass: MeshPhysicalMaterial;
   steel: MeshStandardMaterial;
   glass: MeshPhysicalMaterial;
   wick: MeshStandardMaterial;
@@ -84,15 +84,31 @@ function scratches(
   }
 }
 
+/** Full-width rows of slightly different value: circumferential brushing once wrapped on a lathe. */
+function brushed(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  rand: () => number,
+  rgb: string,
+  maxAlpha: number,
+): void {
+  for (let y = 0; y < size; y++) {
+    ctx.fillStyle = `rgba(${rgb},${rand() * rand() * maxAlpha})`;
+    ctx.fillRect(0, y, size, 1);
+  }
+}
+
 function brassColorMap(): CanvasTexture {
   const size = 512;
   const [canvas, ctx] = makeCanvas(size);
   const rand = mulberry32(7);
   ctx.fillStyle = '#f2f2f2';
   ctx.fillRect(0, 0, size, size);
-  blotches(ctx, size, rand, 90, '120,90,50', 0.18, 20, 110); // darker tarnish
-  blotches(ctx, size, rand, 50, '255,245,220', 0.22, 15, 70); // polished spots
-  scratches(ctx, size, rand, 500, '90,70,40', 0.12);
+  blotches(ctx, size, rand, 70, '95,70,40', 0.42, 25, 120); // tarnish patches
+  blotches(ctx, size, rand, 120, '70,50,30', 0.3, 4, 18); // small oxidation spots
+  blotches(ctx, size, rand, 40, '255,245,220', 0.2, 15, 70); // polished spots
+  brushed(ctx, size, rand, '80,60,35', 0.18);
+  scratches(ctx, size, rand, 400, '90,70,40', 0.15);
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
   tex.wrapS = tex.wrapT = RepeatWrapping;
@@ -104,11 +120,13 @@ function brassRoughnessMap(): CanvasTexture {
   const size = 512;
   const [canvas, ctx] = makeCanvas(size);
   const rand = mulberry32(42);
-  ctx.fillStyle = 'rgb(190,190,190)';
+  ctx.fillStyle = 'rgb(200,200,200)';
   ctx.fillRect(0, 0, size, size);
-  blotches(ctx, size, rand, 80, '255,255,255', 0.35, 20, 120); // dull, fingerprinted
-  blotches(ctx, size, rand, 60, '60,60,60', 0.35, 10, 60); // glossy spots
-  scratches(ctx, size, rand, 700, '255,255,255', 0.25);
+  brushed(ctx, size, rand, '255,255,255', 0.55); // rougher brushing grooves
+  brushed(ctx, size, rand, '90,90,90', 0.35); // glossier ridges
+  blotches(ctx, size, rand, 70, '255,255,255', 0.5, 25, 120); // dull tarnish (matches color map)
+  blotches(ctx, size, rand, 50, '60,60,60', 0.35, 10, 60); // polished spots
+  scratches(ctx, size, rand, 600, '255,255,255', 0.3);
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = NoColorSpace;
   tex.wrapS = tex.wrapT = RepeatWrapping;
@@ -117,10 +135,13 @@ function brassRoughnessMap(): CanvasTexture {
 }
 
 export function createMaterials(): LanternMaterials {
-  const brass = new MeshStandardMaterial({
-    color: new Color('#b08d57'),
+  // Anisotropy direction follows the lathe's U (around the axis), i.e. circular brushing.
+  const brass = new MeshPhysicalMaterial({
+    color: new Color('#c4a265'),
     metalness: 1,
-    roughness: 0.35,
+    roughness: 0.42,
+    anisotropy: 0.5,
+    anisotropyRotation: 0,
     map: brassColorMap(),
     roughnessMap: brassRoughnessMap(),
     envMapIntensity: 1,
@@ -138,8 +159,8 @@ export function createMaterials(): LanternMaterials {
     metalness: 0,
     roughness: 0.05,
     transmission: 1,
-    ior: 1.5,
-    thickness: 0.03,
+    ior: 1.45,
+    thickness: 0.01,
     specularIntensity: 1,
     envMapIntensity: 1,
     transparent: false,

@@ -1,4 +1,5 @@
 import { Color, Group, Mesh, PointLight, ShaderMaterial, SphereGeometry } from 'three';
+import { BLOOM_LAYER } from '../postfx';
 
 export interface Flame {
   group: Group;
@@ -74,7 +75,7 @@ const fragmentShader = /* glsl */ `
     // Alpha cutout instead of blending: the flame must stay opaque to be seen through transmission glass.
     float edge = facing - 0.25 * n - 0.1 * vHeight;
     if (edge < 0.12) discard;
-    float core = smoothstep(0.2, 0.85, edge);
+    float core = smoothstep(0.4, 0.95, edge) * (1.0 - 0.5 * smoothstep(0.5, 1.0, vHeight));
     vec3 col = mix(uEdge, uCore, core);
     // Faint blue at the very bottom like a real wick flame
     col = mix(uBase, col, smoothstep(0.0, 0.22, vHeight));
@@ -84,15 +85,16 @@ const fragmentShader = /* glsl */ `
 `;
 
 export function createFlame(): Flame {
-  const params = { brightness: 4, lightIntensity: 0.05 };
+  const params = { brightness: 1.0, lightIntensity: 0.06 };
   const group = new Group();
 
   const material = new ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
       uBrightness: { value: params.brightness },
-      uCore: { value: new Color(1.0, 0.92, 0.7) },
-      uEdge: { value: new Color(1.0, 0.42, 0.08) },
+      // Linear HDR values chosen so ACES maps the core to ~#fff2c0 instead of clipping to white
+      uCore: { value: new Color(1.6, 0.8, 0.1) },
+      uEdge: { value: new Color(1.1, 0.32, 0.03) },
       uBase: { value: new Color(0.25, 0.35, 1.0) },
     },
     vertexShader,
@@ -102,12 +104,13 @@ export function createFlame(): Flame {
 
   const mesh = new Mesh(new SphereGeometry(1, 48, 32), material);
   // Unit sphere scaled into an elongated drop (meters)
-  mesh.scale.set(0.0055, 0.016, 0.0055);
-  mesh.position.y = 0.112;
+  mesh.scale.set(0.0072, 0.021, 0.0072);
+  mesh.position.y = 0.12;
+  mesh.layers.enable(BLOOM_LAYER);
   group.add(mesh);
 
   const light = new PointLight('#ffa040', params.lightIntensity, 2, 2);
-  light.position.y = 0.118;
+  light.position.y = 0.127;
   light.castShadow = false;
   group.add(light);
 
