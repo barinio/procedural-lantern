@@ -53,9 +53,10 @@ function frameWire(angle: number): TubeGeometry {
 function handle(): TubeGeometry {
   const curve = new CatmullRomCurve3(
     [
-      // ends hook inward through the ears, then a wide half-ellipse ~1.1x the cap diameter
-      new Vector3(-0.054, 0.3155, 0),
-      new Vector3(-0.066, 0.317, 0),
+      // ends pass through the ears and dive into the cap (buried in its thickness), then a wide half-ellipse ~1.1x the cap diameter
+      new Vector3(-0.0555, 0.31, 0),
+      new Vector3(-0.0585, 0.3155, 0),
+      new Vector3(-0.066, 0.3172, 0),
       new Vector3(-0.084, 0.325, 0),
       new Vector3(-0.0965, 0.345, 0),
       new Vector3(-0.095, 0.375, 0),
@@ -67,8 +68,9 @@ function handle(): TubeGeometry {
       new Vector3(0.095, 0.375, 0),
       new Vector3(0.0965, 0.345, 0),
       new Vector3(0.084, 0.325, 0),
-      new Vector3(0.066, 0.317, 0),
-      new Vector3(0.054, 0.3155, 0),
+      new Vector3(0.066, 0.3172, 0),
+      new Vector3(0.0585, 0.3155, 0),
+      new Vector3(0.0555, 0.31, 0),
     ],
     false,
     'centripetal',
@@ -144,6 +146,11 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
     const ferrule = shadowed(new Mesh(new CylinderGeometry(0.0038, 0.0046, 0.006, 20), brass));
     ferrule.position.set(Math.cos(angle) * r, 0.064, Math.sin(angle) * r);
     root.add(ferrule);
+    // Matching ferrule under the cap brim
+    const rTop = WIRE.radiusAt(0.2995);
+    const topFerrule = shadowed(new Mesh(new CylinderGeometry(0.0046, 0.0038, 0.005, 20), brass));
+    topFerrule.position.set(Math.cos(angle) * rTop, 0.2995, Math.sin(angle) * rTop);
+    root.add(topFerrule);
   }
 
   const ring = shadowed(

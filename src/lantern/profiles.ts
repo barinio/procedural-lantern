@@ -14,7 +14,7 @@ function smooth(points: [number, number][], samples = 64): Vector2[] {
 /** Wire frame radius as a function of height (bulges with the glass). */
 export const WIRE = {
   bottomY: 0.056,
-  topY: 0.312,
+  topY: 0.304, // ends inside the cap brim, well below its top surface
   radiusAt(y: number): number {
     return 0.084 - 1.72 * (y - 0.185) ** 2;
   },
@@ -78,15 +78,25 @@ export const glassProfile = smooth(
     [0.0705, 0.175],
     [0.0685, 0.225],
     [0.059, 0.275],
-    [0.053, 0.3],
+    [0.0525, 0.293], // neck slips into the cap collar
+    [0.0515, 0.3],
     [0.051, 0.306],
   ],
   64,
 );
 
+/** Closed cap: inner ceiling -> collar the glass sits in -> brim underside -> rolled brim -> top. */
 export const capProfile = smooth(
   [
-    [0.046, 0.302],
+    [0, 0.309],
+    [0.05, 0.309],
+    [0.0535, 0.3075],
+    [0.0535, 0.2975],
+    [0.0545, 0.2955], // collar lip, 10 mm below the glass rim
+    [0.0568, 0.2955],
+    [0.0577, 0.2975],
+    [0.0577, 0.3005],
+    [0.06, 0.3015],
     [0.07, 0.3015],
     [0.086, 0.302],
     [0.0895, 0.304], // rolled brim
@@ -101,7 +111,7 @@ export const capProfile = smooth(
     [0.012, 0.3405],
     [0, 0.341],
   ],
-  80,
+  160,
 );
 
 /** Knurled thumb wheel, revolved around its own (local Y) axis. */
