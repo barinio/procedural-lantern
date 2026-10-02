@@ -8,8 +8,9 @@ OUT="$ROOT/deploy"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"; git -C "$ROOT" worktree prune' EXIT
 
-rm -rf "$OUT"
+# Keep deploy/.vercel (project link); only the built versions are replaced.
 mkdir -p "$OUT"
+rm -rf "$OUT"/v* "$OUT/index.html"
 
 TAGS=($(git -C "$ROOT" tag --list 'v*' | sort -V))
 for tag in "${TAGS[@]}"; do
