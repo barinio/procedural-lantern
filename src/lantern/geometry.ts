@@ -6,6 +6,7 @@ import {
   LatheGeometry,
   Mesh,
   Object3D,
+  SphereGeometry,
   TorusGeometry,
   TubeGeometry,
   Vector2,
@@ -13,6 +14,7 @@ import {
 } from 'three';
 import type { LanternMaterials } from './materials';
 import {
+  BRIM,
   DIM,
   RING_Y,
   WIRE,
@@ -27,7 +29,9 @@ import {
 const SEGMENTS = 96;
 const WIRE_RADIUS = 0.0021;
 /** Handle ear: upright ring standing on the brim. */
-const EAR = { x: 0.0545, y: 0.3035 };
+const EAR = { x: 0.0545, y: BRIM.topAt(0.0545) + 0.0045 };
+/** Brass bead on the brim where each bail end stops. */
+const BEAD = { x: 0.049, y: BRIM.topAt(0.049) + 0.0028, r: 0.0034 };
 
 function shadowed<T extends Object3D>(obj: T, cast = true, receive = true): T {
   obj.castShadow = cast;
@@ -47,22 +51,22 @@ function frameWire(angle: number): TubeGeometry {
   return new TubeGeometry(new CatmullRomCurve3(points), 160, WIRE_RADIUS, 12, false);
 }
 
-/** Horseshoe bail: ends buried in the cap through the ears, near-vertical lower sides, round top. */
+/** Horseshoe bail: ends pass through the ears into beads on the brim, near-vertical lower sides, round top. */
 function handle(): TubeGeometry {
   const half: [number, number][] = [
-    [0.0535, 0.295], // buried in the brim
+    [BEAD.x, BEAD.y], // ends in a bead on the brim
     [EAR.x, EAR.y],
-    [0.06, 0.311],
-    [0.0648, 0.323],
+    [0.0598, 0.3075],
+    [0.0645, 0.32],
     [0.066, 0.345],
     [0.065, 0.364],
-    [0.0575, 0.386],
-    [0.04, 0.4025],
-    [0.0205, 0.4085],
+    [0.0575, 0.385],
+    [0.04, 0.4005],
+    [0.0205, 0.4065],
   ];
   const left = half.map(([x, y]) => new Vector3(-x, y, 0));
   const right = [...half].reverse().map(([x, y]) => new Vector3(x, y, 0));
-  const curve = new CatmullRomCurve3([...left, new Vector3(0, 0.41, 0), ...right], false, 'centripetal');
+  const curve = new CatmullRomCurve3([...left, new Vector3(0, 0.408, 0), ...right], false, 'centripetal');
   return new TubeGeometry(curve, 160, 0.0026, 16, false);
 }
 
@@ -111,13 +115,13 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
     new Mesh(new CylinderGeometry(0.0022, 0.0022, 0.018, 16), brass),
   );
   spindle.rotation.z = Math.PI / 2;
-  spindle.position.x = 0.093;
+  spindle.position.x = 0.0915;
   const wheel = shadowed(new Mesh(knurledWheel(), brass));
   wheel.rotation.z = Math.PI / 2;
-  wheel.position.x = 0.0975;
+  wheel.position.x = 0.094;
   const knob = shadowed(new Mesh(new CylinderGeometry(0.003, 0.0035, 0.004, 24), brass));
   knob.rotation.z = Math.PI / 2;
-  knob.position.x = 0.1025;
+  knob.position.x = 0.099;
   wheelGroup.add(spindle, wheel, knob);
   wheelGroup.position.y = 0.062;
   // Points along +X, midway between two frame wires: right of the default camera,
@@ -130,15 +134,16 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
     const angle = Math.PI / 4 + (i * Math.PI) / 2;
     root.add(shadowed(new Mesh(frameWire(angle), steel)));
     // Brass ferrule where the wire enters the reservoir
-    const fy = DIM.reservoirTop + 0.002;
+    const fy = 0.0765; // on the domed top at the wire's radius
     const r = WIRE.radiusAt(fy);
     const ferrule = shadowed(new Mesh(new CylinderGeometry(0.0038, 0.0046, 0.006, 20), brass));
     ferrule.position.set(Math.cos(angle) * r, fy, Math.sin(angle) * r);
     root.add(ferrule);
     // Matching ferrule under the cap brim
-    const ty = 0.2875;
+    // Wire top ends inside this sleeve, which is sunk 0.5 mm into the thin brim
+    const ty = BRIM.bottomAt(0.053) - 0.0025;
     const rTop = WIRE.radiusAt(ty);
-    const topFerrule = shadowed(new Mesh(new CylinderGeometry(0.0027, 0.0025, 0.0045, 20), brass));
+    const topFerrule = shadowed(new Mesh(new CylinderGeometry(0.003, 0.0027, 0.006, 20), brass));
     topFerrule.position.set(Math.cos(angle) * rTop, ty, Math.sin(angle) * rTop);
     root.add(topFerrule);
   }
@@ -158,6 +163,9 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
     // Hole axis (+Z) along the bail's direction where it threads through
     ear.lookAt(new Vector3(side * (EAR.x + 0.0055), EAR.y + 0.0075, 0));
     root.add(ear);
+    const bead = shadowed(new Mesh(new SphereGeometry(BEAD.r, 20, 14), brass));
+    bead.position.set(side * BEAD.x, BEAD.y, 0);
+    root.add(bead);
   }
   root.add(shadowed(new Mesh(handle(), steel)));
 

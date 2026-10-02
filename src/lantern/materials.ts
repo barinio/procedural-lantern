@@ -15,7 +15,7 @@ export function createMaterials(): LanternMaterials {
 
   // Darker, olive brass under a scratched lacquer; anisotropy kept low so it does not read as brushed.
   const brass = new MeshPhysicalMaterial({
-    color: new Color('#b5964f'),
+    color: new Color('#a08445'),
     metalness: 1,
     roughness: 0.52, // x roughnessMap background (~0.86) = ~0.45
     anisotropy: 0.1,
@@ -37,7 +37,7 @@ export function createMaterials(): LanternMaterials {
   const glass = new MeshPhysicalMaterial({
     color: new Color('#fffaf0'),
     metalness: 0,
-    roughness: 0.05,
+    roughness: 0.02,
     transmission: 1,
     ior: 1.45,
     thickness: 0.01,
