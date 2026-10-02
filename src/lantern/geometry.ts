@@ -13,6 +13,7 @@ import {
 } from 'three';
 import type { LanternMaterials } from './materials';
 import {
+  DIM,
   RING_Y,
   WIRE,
   burnerProfile,
@@ -25,6 +26,8 @@ import {
 
 const SEGMENTS = 96;
 const WIRE_RADIUS = 0.0021;
+/** Handle ear: upright ring standing on the brim. */
+const EAR = { x: 0.0545, y: 0.3035 };
 
 function shadowed<T extends Object3D>(obj: T, cast = true, receive = true): T {
   obj.castShadow = cast;
@@ -40,42 +43,27 @@ function lathe(profile: Vector2[], segments = SEGMENTS): LatheGeometry {
 }
 
 function frameWire(angle: number): TubeGeometry {
-  const points: Vector3[] = [];
-  const steps = 16;
-  for (let i = 0; i <= steps; i++) {
-    const y = WIRE.bottomY + ((WIRE.topY - WIRE.bottomY) * i) / steps;
-    const r = WIRE.radiusAt(y);
-    points.push(new Vector3(Math.cos(angle) * r, y, Math.sin(angle) * r));
-  }
-  return new TubeGeometry(new CatmullRomCurve3(points), 96, WIRE_RADIUS, 12, false);
+  const points = WIRE.points.map((p) => new Vector3(Math.cos(angle) * p.x, p.y, Math.sin(angle) * p.x));
+  return new TubeGeometry(new CatmullRomCurve3(points), 160, WIRE_RADIUS, 12, false);
 }
 
+/** Horseshoe bail: ends buried in the cap through the ears, near-vertical lower sides, round top. */
 function handle(): TubeGeometry {
-  const curve = new CatmullRomCurve3(
-    [
-      // ends pass through the ears and dive into the cap (buried in its thickness), then a wide half-ellipse ~1.1x the cap diameter
-      new Vector3(-0.0555, 0.31, 0),
-      new Vector3(-0.0585, 0.3155, 0),
-      new Vector3(-0.066, 0.3172, 0),
-      new Vector3(-0.084, 0.325, 0),
-      new Vector3(-0.0965, 0.345, 0),
-      new Vector3(-0.095, 0.375, 0),
-      new Vector3(-0.078, 0.406, 0),
-      new Vector3(-0.044, 0.427, 0),
-      new Vector3(0, 0.434, 0),
-      new Vector3(0.044, 0.427, 0),
-      new Vector3(0.078, 0.406, 0),
-      new Vector3(0.095, 0.375, 0),
-      new Vector3(0.0965, 0.345, 0),
-      new Vector3(0.084, 0.325, 0),
-      new Vector3(0.066, 0.3172, 0),
-      new Vector3(0.0585, 0.3155, 0),
-      new Vector3(0.0555, 0.31, 0),
-    ],
-    false,
-    'centripetal',
-  );
-  return new TubeGeometry(curve, 128, 0.0026, 16, false);
+  const half: [number, number][] = [
+    [0.0535, 0.295], // buried in the brim
+    [EAR.x, EAR.y],
+    [0.06, 0.311],
+    [0.0648, 0.323],
+    [0.066, 0.345],
+    [0.065, 0.364],
+    [0.0575, 0.386],
+    [0.04, 0.4025],
+    [0.0205, 0.4085],
+  ];
+  const left = half.map(([x, y]) => new Vector3(-x, y, 0));
+  const right = [...half].reverse().map(([x, y]) => new Vector3(x, y, 0));
+  const curve = new CatmullRomCurve3([...left, new Vector3(0, 0.41, 0), ...right], false, 'centripetal');
+  return new TubeGeometry(curve, 160, 0.0026, 16, false);
 }
 
 /** Lathe wheel with its rim radially modulated to read as knurling. */
@@ -114,24 +102,24 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
 
   // Wick: flat cotton strip poking out of the burner tube
   const wickMesh = shadowed(new Mesh(new BoxGeometry(0.009, 0.008, 0.0016), wick));
-  wickMesh.position.y = 0.102;
+  wickMesh.position.y = DIM.wickTop - 0.002;
   root.add(wickMesh);
 
-  // Thumb wheel on a short spindle, sticking out of the burner collar
+  // Thumb wheel on a short spindle out of the reservoir wall, upper third of its height
   const wheelGroup = new Group();
   const spindle = shadowed(
-    new Mesh(new CylinderGeometry(0.0022, 0.0022, 0.04, 16), brass),
+    new Mesh(new CylinderGeometry(0.0022, 0.0022, 0.018, 16), brass),
   );
   spindle.rotation.z = Math.PI / 2;
-  spindle.position.x = 0.04;
+  spindle.position.x = 0.093;
   const wheel = shadowed(new Mesh(knurledWheel(), brass));
   wheel.rotation.z = Math.PI / 2;
-  wheel.position.x = 0.061;
+  wheel.position.x = 0.0975;
   const knob = shadowed(new Mesh(new CylinderGeometry(0.003, 0.0035, 0.004, 24), brass));
   knob.rotation.z = Math.PI / 2;
-  knob.position.x = 0.066;
+  knob.position.x = 0.1025;
   wheelGroup.add(spindle, wheel, knob);
-  wheelGroup.position.y = 0.07;
+  wheelGroup.position.y = 0.062;
   // Points along +X, midway between two frame wires: right of the default camera,
   // on the side opposite the shadow, as in the reference photo.
   wheelGroup.rotation.y = 0;
@@ -142,14 +130,16 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
     const angle = Math.PI / 4 + (i * Math.PI) / 2;
     root.add(shadowed(new Mesh(frameWire(angle), steel)));
     // Brass ferrule where the wire enters the reservoir
-    const r = WIRE.radiusAt(0.064);
+    const fy = DIM.reservoirTop + 0.002;
+    const r = WIRE.radiusAt(fy);
     const ferrule = shadowed(new Mesh(new CylinderGeometry(0.0038, 0.0046, 0.006, 20), brass));
-    ferrule.position.set(Math.cos(angle) * r, 0.064, Math.sin(angle) * r);
+    ferrule.position.set(Math.cos(angle) * r, fy, Math.sin(angle) * r);
     root.add(ferrule);
     // Matching ferrule under the cap brim
-    const rTop = WIRE.radiusAt(0.2995);
-    const topFerrule = shadowed(new Mesh(new CylinderGeometry(0.0046, 0.0038, 0.005, 20), brass));
-    topFerrule.position.set(Math.cos(angle) * rTop, 0.2995, Math.sin(angle) * rTop);
+    const ty = 0.2875;
+    const rTop = WIRE.radiusAt(ty);
+    const topFerrule = shadowed(new Mesh(new CylinderGeometry(0.0027, 0.0025, 0.0045, 20), brass));
+    topFerrule.position.set(Math.cos(angle) * rTop, ty, Math.sin(angle) * rTop);
     root.add(topFerrule);
   }
 
@@ -162,10 +152,11 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
 
   // Handle ears on the cap and the bail itself
   for (const side of [-1, 1]) {
-    // Ring standing upright on the cap slope, hole facing along X so the bail threads through it
+    // Small ring on the brim edge
     const ear = shadowed(new Mesh(new TorusGeometry(0.0046, 0.0015, 10, 32), brass));
-    ear.rotation.y = Math.PI / 2;
-    ear.position.set(side * 0.061, 0.3165, 0);
+    ear.position.set(side * EAR.x, EAR.y, 0);
+    // Hole axis (+Z) along the bail's direction where it threads through
+    ear.lookAt(new Vector3(side * (EAR.x + 0.0055), EAR.y + 0.0075, 0));
     root.add(ear);
   }
   root.add(shadowed(new Mesh(handle(), steel)));

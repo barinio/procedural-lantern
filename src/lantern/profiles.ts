@@ -1,5 +1,7 @@
 import { CatmullRomCurve3, Vector2, Vector3 } from 'three';
 
+// Dimensions in meters, taken from docs/reference.jpg (reservoir width 238 px = 0.18 m).
+
 // Smooths a coarse (radius, height) polyline with a centripetal Catmull-Rom spline,
 // so control points act as fillets instead of hard corners.
 function smooth(points: [number, number][], samples = 64): Vector2[] {
@@ -11,107 +13,148 @@ function smooth(points: [number, number][], samples = 64): Vector2[] {
   return curve.getSpacedPoints(samples).map((p) => new Vector2(Math.max(p.x, 0), p.y));
 }
 
-/** Wire frame radius as a function of height (bulges with the glass). */
+/** Key heights shared by several parts. */
+export const DIM = {
+  reservoirTop: 0.08,
+  wickTop: 0.13,
+  glassBottom: 0.084,
+  glassTop: 0.296,
+  brimTop: 0.299,
+};
+
+/** Wire frame: follows the glass barrel ~5 mm outside it, from the reservoir into the cap brim. */
+const wireCurve = new CatmullRomCurve3(
+  (
+    [
+      [0.0645, 0.074], // buried in the reservoir top (ferrule)
+      [0.0705, 0.105],
+      [0.0752, 0.14],
+      [0.077, 0.18],
+      [0.0752, 0.22],
+      [0.068, 0.255],
+      [0.0585, 0.28],
+      [0.0545, 0.2935], // inside the brim, >= 3 mm under its top surface
+    ] as [number, number][]
+  ).map(([r, y]) => new Vector3(r, y, 0)),
+  false,
+  'centripetal',
+);
+const wireSamples = wireCurve.getPoints(200);
+
 export const WIRE = {
-  bottomY: 0.056,
-  topY: 0.304, // ends inside the cap brim, well below its top surface
+  /** Points of the wire in its (radius, height) plane. */
+  points: wireSamples.map((p) => new Vector2(p.x, p.y)),
   radiusAt(y: number): number {
-    return 0.084 - 1.72 * (y - 0.185) ** 2;
+    for (let i = 1; i < wireSamples.length; i++) {
+      const a = wireSamples[i - 1];
+      const b = wireSamples[i];
+      if (y >= a.y && y <= b.y) return a.x + ((b.x - a.x) * (y - a.y)) / (b.y - a.y);
+    }
+    return y < wireSamples[0].y ? wireSamples[0].x : wireSamples[wireSamples.length - 1].x;
   },
 };
 
-export const RING_Y = 0.16;
+/** Frame ring at ~37 % of the glass height. */
+export const RING_Y = DIM.glassBottom + 0.37 * (DIM.glassTop - DIM.glassBottom);
 
+/** Flat wide puck: flat top and bottom, near-vertical wall, rounded edges. */
 export const reservoirProfile = smooth(
   [
     [0, 0],
-    [0.06, 0],
-    [0.08, 0.002],
-    [0.088, 0.01],
-    [0.0915, 0.026],
-    [0.09, 0.042],
-    [0.083, 0.054],
-    [0.07, 0.061],
-    [0.05, 0.0635],
-    [0.02, 0.064],
-    [0, 0.064],
+    [0.068, 0],
+    [0.081, 0.003],
+    [0.0885, 0.013],
+    [0.09, 0.026],
+    [0.09, 0.052],
+    [0.088, 0.066],
+    [0.082, 0.0755],
+    [0.071, 0.0795],
+    [0.05, 0.08],
+    [0, 0.08],
   ],
-  96,
+  120,
 );
 
-/** Gallery cup that holds the glass on top of the reservoir. */
+/** Thin round plate on the reservoir with a raised rim the glass sits in. */
 export const galleryProfile = smooth(
   [
-    [0.04, 0.062],
-    [0.05, 0.0625],
-    [0.0525, 0.066],
-    [0.053, 0.074],
-    [0.0505, 0.077],
-    [0.0475, 0.0765],
-    [0.047, 0.07],
+    [0, 0.0795],
+    [0.058, 0.0795],
+    [0.0612, 0.081],
+    [0.062, 0.0885],
+    [0.0602, 0.0905],
+    [0.0568, 0.09],
+    [0.0558, 0.0855],
+    [0.05, 0.084],
+    [0, 0.084],
   ],
-  48,
+  64,
 );
 
+/** Burner: low pot-shaped collar with a lip, a shallow dome and the wick tube. */
 export const burnerProfile = smooth(
   [
-    [0.046, 0.063],
-    [0.044, 0.07],
-    [0.04, 0.076],
-    [0.032, 0.083],
-    [0.02, 0.088],
-    [0.011, 0.0905],
-    [0.0075, 0.093],
-    [0.007, 0.098],
-    [0.005, 0.1],
-    [0, 0.1],
+    [0.044, 0.0835],
+    [0.0425, 0.09],
+    [0.0435, 0.1],
+    [0.044, 0.107], // lip
+    [0.0415, 0.1105],
+    [0.033, 0.1155],
+    [0.02, 0.1205],
+    [0.011, 0.1235],
+    [0.0068, 0.125],
+    [0.006, 0.1285],
+    [0.004, 0.13],
+    [0, 0.13],
   ],
-  64,
+  80,
 );
 
-/** Barrel-shaped chimney glass, open at both ends. */
+/** Barrel chimney, open at both ends; the neck slips into the cap collar. */
 export const glassProfile = smooth(
   [
-    [0.0465, 0.07],
-    [0.049, 0.085],
-    [0.06, 0.12],
-    [0.0705, 0.175],
-    [0.0685, 0.225],
-    [0.059, 0.275],
-    [0.0525, 0.293], // neck slips into the cap collar
-    [0.0515, 0.3],
-    [0.051, 0.306],
+    [0.0545, 0.084],
+    [0.058, 0.095],
+    [0.0655, 0.125],
+    [0.071, 0.17],
+    [0.0705, 0.2],
+    [0.0655, 0.235],
+    [0.0575, 0.262],
+    [0.0505, 0.276],
+    [0.0475, 0.284],
+    [0.047, DIM.glassTop],
   ],
-  64,
+  80,
 );
 
-/** Closed cap: inner ceiling -> collar the glass sits in -> brim underside -> rolled brim -> top. */
+/**
+ * Closed cap: inner ceiling -> collar the glass sits in -> brim underside -> rolled brim ->
+ * tall rounded "bowler hat" dome -> axis.
+ */
 export const capProfile = smooth(
   [
-    [0, 0.309],
-    [0.05, 0.309],
-    [0.0535, 0.3075],
-    [0.0535, 0.2975],
-    [0.0545, 0.2955], // collar lip, 10 mm below the glass rim
-    [0.0568, 0.2955],
-    [0.0577, 0.2975],
-    [0.0577, 0.3005],
-    [0.06, 0.3015],
-    [0.07, 0.3015],
-    [0.086, 0.302],
-    [0.0895, 0.304], // rolled brim
-    [0.0885, 0.3068],
-    [0.083, 0.3078],
-    [0.07, 0.3095],
-    [0.055, 0.3135],
-    [0.043, 0.3185],
-    [0.037, 0.3255],
-    [0.033, 0.3335],
-    [0.025, 0.3385],
+    [0, 0.2965],
+    [0.044, 0.2965],
+    [0.0482, 0.2952],
+    [0.0485, 0.2855],
+    [0.0495, 0.2832], // collar lip, ~13 mm below the glass rim
+    [0.0516, 0.2832],
+    [0.0525, 0.2852],
+    [0.0525, 0.2885],
+    [0.0545, 0.2895],
+    [0.0565, 0.2915],
+    [0.057, 0.295], // rolled brim edge
+    [0.0552, 0.2985],
+    [0.048, DIM.brimTop],
+    [0.0455, 0.3015],
+    [0.0445, 0.31],
+    [0.0425, 0.322],
+    [0.0365, 0.3315],
+    [0.026, 0.338],
     [0.012, 0.3405],
     [0, 0.341],
   ],
-  160,
+  200,
 );
 
 /** Knurled thumb wheel, revolved around its own (local Y) axis. */

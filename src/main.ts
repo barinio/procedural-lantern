@@ -26,8 +26,10 @@ renderer.shadowMap.type = PCFShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const scene = new Scene();
-const camera = new PerspectiveCamera(32, window.innerWidth / window.innerHeight, 0.01, 20);
-camera.position.set(0.5, 0.42, 1.0);
+const camera = new PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.01, 20);
+// Reference framing: front, ~25 deg to the right, looking down ~20 deg, 1.49 m away.
+// A longer lens (20 deg FOV) keeps perspective from inflating the cap/handle vs the reservoir.
+camera.position.set(0.591, 0.719, 1.268);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0.21, 0);
