@@ -109,7 +109,7 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
   wickMesh.position.y = DIM.wickTop - 0.002;
   root.add(wickMesh);
 
-  // Thumb wheel on a short spindle out of the reservoir wall, upper third of its height
+  // Thumb wheel on a short spindle out of the reservoir wall, just under the shoulder
   const wheelGroup = new Group();
   const spindle = shadowed(
     new Mesh(new CylinderGeometry(0.0022, 0.0022, 0.018, 16), brass),
@@ -123,7 +123,7 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
   knob.rotation.z = Math.PI / 2;
   knob.position.x = 0.099;
   wheelGroup.add(spindle, wheel, knob);
-  wheelGroup.position.y = 0.062;
+  wheelGroup.position.y = 0.045;
   // Points along +X, midway between two frame wires: right of the default camera,
   // on the side opposite the shadow, as in the reference photo.
   wheelGroup.rotation.y = 0;
@@ -134,7 +134,7 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
     const angle = Math.PI / 4 + (i * Math.PI) / 2;
     root.add(shadowed(new Mesh(frameWire(angle), steel)));
     // Brass ferrule where the wire enters the reservoir
-    const fy = 0.0765; // on the domed top at the wire's radius
+    const fy = 0.0725; // on the pillowed top at the wire's radius
     const r = WIRE.radiusAt(fy);
     const ferrule = shadowed(new Mesh(new CylinderGeometry(0.0038, 0.0046, 0.006, 20), brass));
     ferrule.position.set(Math.cos(angle) * r, fy, Math.sin(angle) * r);

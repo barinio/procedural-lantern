@@ -105,12 +105,12 @@ export function createFlame(): Flame {
   const mesh = new Mesh(new SphereGeometry(1, 48, 32), material);
   // Unit sphere scaled into an elongated drop (meters)
   mesh.scale.set(0.0072, 0.021, 0.0072);
-  mesh.position.y = 0.133;
+  mesh.position.y = 0.129;
   mesh.layers.enable(BLOOM_LAYER);
   group.add(mesh);
 
   const light = new PointLight('#ffa040', params.lightIntensity, 2, 2);
-  light.position.y = 0.14;
+  light.position.y = 0.136;
   light.castShadow = false;
   group.add(light);
 

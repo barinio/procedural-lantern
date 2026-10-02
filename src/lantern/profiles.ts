@@ -13,12 +13,12 @@ function smooth(points: [number, number][], samples = 64): Vector2[] {
   return curve.getSpacedPoints(samples).map((p) => new Vector2(Math.max(p.x, 0), p.y));
 }
 
-/** Cap brim: a thin cone rising ~17 deg from the rim (r 0.057) to the dome base (r 0.034). */
+/** Cap brim: a thin cone rising ~13 deg from the rim (r 0.057) to the dome base (r 0.0425). */
 export const BRIM = {
   rimR: 0.0568,
   rimTop: 0.2952,
-  domeR: 0.034,
-  slope: Math.tan((17 * Math.PI) / 180),
+  domeR: 0.0425,
+  slope: Math.tan((13 * Math.PI) / 180),
   /** Height of the brim's top surface at radius r. */
   topAt(r: number): number {
     return this.rimTop + (this.rimR - Math.min(Math.max(r, this.domeR), this.rimR)) * this.slope;
@@ -32,10 +32,10 @@ export const BRIM = {
 /** Key heights shared by several parts. */
 export const DIM = {
   reservoirTop: 0.081, // dome centre
-  plateTop: 0.0815,
-  wickTop: 0.1165,
-  glassBottom: 0.0815,
-  glassTop: 0.296,
+  plateTop: 0.0782,
+  wickTop: 0.1126,
+  glassBottom: 0.0782,
+  glassTop: 0.2958,
   /** Visual centre line of the brim rim (used for proportion checks). */
   brimLine: 0.2945,
   domeTop: 0.3385,
@@ -45,7 +45,7 @@ export const DIM = {
 const wireCurve = new CatmullRomCurve3(
   (
     [
-      [0.0645, 0.0735], // buried in the reservoir top (ferrule)
+      [0.0645, 0.068], // buried in the reservoir top (ferrule)
       [0.0705, 0.105],
       [0.0752, 0.14],
       [0.077, 0.18],
@@ -77,73 +77,78 @@ export const WIRE = {
 export const RING_Y = DIM.glassBottom + 0.37 * (DIM.glassTop - DIM.glassBottom);
 
 /**
- * Reservoir: wall tapers from dia 0.18 at the bottom to ~0.168 at the top, bottom edge rounded ~12 mm,
- * top edge rounded ~20 mm into a soft dome whose centre sits ~9 mm above the edge.
+ * Reservoir "pillow": dia 0.18 at the bottom, bottom edge ~12 mm, slightly convex wall, a large ~32 mm
+ * shoulder and a soft domed top (centre ~9 mm above the shoulder).
  */
 export const reservoirProfile = smooth(
   [
     [0, 0],
-    [0.075, 0],
-    [0.0842, 0.0022],
-    [0.0892, 0.0075],
-    [0.09, 0.014],
-    [0.0878, 0.038],
-    [0.0858, 0.053],
-    [0.0836, 0.0612],
-    [0.0792, 0.0675],
-    [0.0728, 0.0718],
-    [0.064, 0.0754],
-    [0.045, 0.0786],
-    [0.022, 0.0805],
+    [0.074, 0],
+    [0.0835, 0.0025],
+    [0.0885, 0.008],
+    [0.0903, 0.016],
+    [0.0905, 0.026], // wall bulges ~3 mm past a straight taper
+    [0.0895, 0.036],
+    [0.0868, 0.0465], // ~32 mm shoulder into the pillowed top
+    [0.0822, 0.056],
+    [0.0758, 0.0635],
+    [0.0675, 0.0694],
+    [0.057, 0.0737],
+    [0.042, 0.0773],
+    [0.022, 0.0801],
     [0, 0.081],
   ],
-  140,
+  160,
 );
 
-/** Flat plate (dia 0.124, 3 mm) with a crisp edge and a low rim that seats the glass. */
+/** Flat plate (dia 0.11, 3 mm) resting on the reservoir dome, with a low lip that seats the glass. */
 export const galleryProfile = smooth(
   [
-    [0, 0.0785],
-    [0.059, 0.0785],
-    [0.0616, 0.0788],
-    [0.062, 0.0802],
-    [0.0612, 0.0815],
-    [0.0586, 0.0815],
-    [0.0585, 0.0838],
-    [0.0573, 0.0845],
-    [0.0559, 0.0839],
-    [0.0556, 0.0817],
-    [0.045, 0.0815],
-    [0, 0.0815],
+    [0, DIM.plateTop - 0.003],
+    [0.053, DIM.plateTop - 0.003],
+    [0.0546, DIM.plateTop - 0.0027],
+    [0.055, DIM.plateTop - 0.0013],
+    [0.0546, DIM.plateTop],
+    [0.0541, DIM.plateTop],
+    [0.0541, DIM.plateTop + 0.0019],
+    [0.0532, DIM.plateTop + 0.0025],
+    [0.0522, DIM.plateTop + 0.002],
+    [0.052, DIM.plateTop + 0.0002],
+    [0.045, DIM.plateTop],
+    [0, DIM.plateTop],
   ],
   96,
 );
 
-/** Burner bell: dia 0.088 at the base, rounding in over ~27 mm to a short neck (dia 0.02) under the wick. */
+/** Tiered burner: lower tier dia 0.07 -> 0.05 over 12 mm, then a small dome to a dia 0.02 neck (27 mm total). */
+const P = DIM.plateTop;
 export const burnerProfile = smooth(
   [
-    [0.0441, DIM.plateTop - 0.0003],
-    [0.0438, 0.0845],
-    [0.0418, 0.0888],
-    [0.0368, 0.0943],
-    [0.029, 0.0995],
-    [0.019, 0.104],
-    [0.0122, 0.107],
-    [0.0102, 0.1095], // neck
-    [0.0098, 0.1135],
-    [0.0078, 0.1146],
-    [0.005, 0.115],
-    [0, 0.115],
+    [0.0351, P - 0.0003],
+    [0.0349, P + 0.003],
+    [0.0332, P + 0.0075],
+    [0.0292, P + 0.0105],
+    [0.026, P + 0.0118], // shelf between the tiers
+    [0.0249, P + 0.0126],
+    [0.0246, P + 0.015],
+    [0.022, P + 0.0195],
+    [0.0165, P + 0.0235],
+    [0.0117, P + 0.026],
+    [0.0102, P + 0.027], // neck
+    [0.0098, P + 0.031],
+    [0.0078, P + 0.0321],
+    [0.005, P + 0.0324],
+    [0, P + 0.0324],
   ],
-  96,
+  110,
 );
 
 /** Barrel chimney, open at both ends; the neck slips into the thin collar under the cap. */
 export const glassProfile = smooth(
   [
-    [0.0545, DIM.glassBottom],
-    [0.058, 0.093],
-    [0.0655, 0.123],
+    [0.051, DIM.glassBottom],
+    [0.0545, 0.089],
+    [0.0632, 0.118],
     [0.071, 0.17],
     [0.0705, 0.2],
     [0.0655, 0.235],
@@ -163,9 +168,9 @@ export const glassProfile = smooth(
 const C = BRIM;
 export const capProfile = smooth(
   [
-    [0, 0.2972],
-    [0.0445, 0.2972],
-    [0.0461, 0.2962],
+    [0, 0.2963],
+    [0.0445, 0.2963],
+    [0.0461, 0.2958],
     [0.0462, 0.2912],
     [0.0469, 0.2904], // collar lip, ~5.5 mm below the glass rim
     [0.0477, 0.2912],
@@ -176,15 +181,16 @@ export const capProfile = smooth(
     [0.0572, C.rimTop - 0.0014], // thin rounded rim
     [C.rimR, C.rimTop],
     [0.054, C.topAt(0.054)],
-    [0.045, C.topAt(0.045)],
-    [0.037, C.topAt(0.037)],
-    [0.0335, C.topAt(0.034) + 0.0012], // concave foot of the bell
-    [0.031, C.topAt(0.034) + 0.005],
-    [0.0283, 0.313],
-    [0.0258, 0.321],
-    [0.0218, 0.328],
-    [0.0155, 0.3337],
-    [0.0075, 0.3373],
+    [0.047, C.topAt(0.047)],
+    [0.0435, C.topAt(0.0435)],
+    [0.0412, C.topAt(C.domeR) + 0.0012], // slightly concave foot
+    [0.0385, C.topAt(C.domeR) + 0.0048],
+    [0.034, 0.3073], // near-straight conical side
+    [0.028, 0.315],
+    [0.022, 0.3228],
+    [0.0172, 0.3297], // round crown, r ~0.02
+    [0.0118, 0.3348],
+    [0.0058, 0.3376],
     [0, DIM.domeTop],
   ],
   220,
