@@ -15,7 +15,7 @@ export function setupPostFX(renderer: WebGLRenderer, scene: Scene, camera: Camer
   // Composer targets are HalfFloat, so values > 1 survive until bloom; threshold > 1 keeps metal speculars out.
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(size, 0.6, 0.4, 1.6);
+  const bloom = new UnrealBloomPass(size, 0.35, 0.4, 3.2);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 

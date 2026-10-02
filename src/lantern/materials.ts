@@ -129,8 +129,8 @@ export function createMaterials(): LanternMaterials {
   const steel = new MeshStandardMaterial({
     color: new Color('#c8cacc'),
     metalness: 1,
-    roughness: 0.35,
-    envMapIntensity: 0.8,
+    roughness: 0.5,
+    envMapIntensity: 0.6,
   });
 
   const glass = new MeshPhysicalMaterial({
