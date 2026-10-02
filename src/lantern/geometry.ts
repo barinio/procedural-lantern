@@ -120,7 +120,8 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
   knob.position.x = 0.066;
   wheelGroup.add(spindle, wheel, knob);
   wheelGroup.position.y = 0.07;
-  wheelGroup.rotation.y = -Math.PI / 2; // points along +Z, midway between two frame wires
+  // Points along +X, midway between two frame wires: opposite the shadow, as in the reference.
+  wheelGroup.rotation.y = 0;
   root.add(wheelGroup);
 
   // Frame wires, diagonal to the handle plane
