@@ -78,15 +78,24 @@ export const glassProfile = smooth(
     [0.0705, 0.175],
     [0.0685, 0.225],
     [0.059, 0.275],
-    [0.053, 0.3],
-    [0.051, 0.306],
+    [0.0525, 0.293],
+    [0.05, 0.306],
   ],
   64,
 );
 
+// Closed underneath: inner ceiling, a short collar the glass neck sits in, then the brim.
+// An open profile showed the glass rim and the hollow cap when viewed from below.
 export const capProfile = smooth(
   [
-    [0.046, 0.302],
+    [0, 0.309],
+    [0.05, 0.309],
+    [0.0535, 0.306],
+    [0.0535, 0.2975],
+    [0.0545, 0.2955],
+    [0.0568, 0.2955],
+    [0.0577, 0.2975],
+    [0.0577, 0.3015],
     [0.06, 0.3015],
     [0.074, 0.302],
     [0.0775, 0.3045],
@@ -99,7 +108,7 @@ export const capProfile = smooth(
     [0.012, 0.3515],
     [0, 0.352],
   ],
-  80,
+  160,
 );
 
 /** Knurled thumb wheel, revolved around its own (local Y) axis. */
