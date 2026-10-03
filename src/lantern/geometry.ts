@@ -109,21 +109,21 @@ export function buildLantern(materials: LanternMaterials): LanternParts {
   wickMesh.position.y = DIM.wickTop - 0.002;
   root.add(wickMesh);
 
-  // Thumb wheel on a short spindle out of the reservoir wall, just under the shoulder
+  // Thumb wheel on a short spindle out of the reservoir's upper wall, just under the shoulder
   const wheelGroup = new Group();
   const spindle = shadowed(
     new Mesh(new CylinderGeometry(0.0022, 0.0022, 0.018, 16), brass),
   );
   spindle.rotation.z = Math.PI / 2;
-  spindle.position.x = 0.0915;
+  spindle.position.x = 0.0795;
   const wheel = shadowed(new Mesh(knurledWheel(), brass));
   wheel.rotation.z = Math.PI / 2;
-  wheel.position.x = 0.094;
+  wheel.position.x = 0.0832;
   const knob = shadowed(new Mesh(new CylinderGeometry(0.003, 0.0035, 0.004, 24), brass));
   knob.rotation.z = Math.PI / 2;
-  knob.position.x = 0.099;
+  knob.position.x = 0.0882;
   wheelGroup.add(spindle, wheel, knob);
-  wheelGroup.position.y = 0.045;
+  wheelGroup.position.y = 0.065; // ~1 cm under the top of the wall, near the burner plate
   // Points along +X, midway between two frame wires: right of the default camera,
   // on the side opposite the shadow, as in the reference photo.
   wheelGroup.rotation.y = 0;

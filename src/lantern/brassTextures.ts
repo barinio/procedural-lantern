@@ -34,14 +34,22 @@ function canvas2d(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   return [c, c.getContext('2d', { willReadFrequently: true })!];
 }
 
-/** Soft blotches; drawn three times across U so the lathe seam does not show. */
+/** Horizontal copies needed so a shape spanning [minX, maxX] wraps across the lathe seam. */
+function wrapOffsets(minX: number, maxX: number): number[] {
+  const out = [0];
+  if (minX < 0) out.push(SIZE);
+  if (maxX > SIZE) out.push(-SIZE);
+  return out;
+}
+
+/** Soft blotches; wrapped across U so the lathe seam does not show. */
 function blotches(ctx: CanvasRenderingContext2D, rand: () => number, count: number, rgb: string, maxAlpha: number, minR: number, maxR: number): void {
   for (let i = 0; i < count; i++) {
     const x = rand() * SIZE;
     const y = rand() * SIZE;
     const r = minR + rand() * (maxR - minR);
     const a = rand() * maxAlpha;
-    for (const dx of [-SIZE, 0, SIZE]) {
+    for (const dx of wrapOffsets(x - r, x + r)) {
       const g = ctx.createRadialGradient(x + dx, y, 0, x + dx, y, r);
       g.addColorStop(0, `rgba(${rgb},${a})`);
       g.addColorStop(1, `rgba(${rgb},0)`);
@@ -95,7 +103,7 @@ function drawStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], rgb: stri
   for (const s of strokes) {
     ctx.strokeStyle = `rgba(${rgb},${Math.min(1, s.alpha * alphaScale)})`;
     ctx.lineWidth = s.width;
-    for (const dx of [-SIZE, 0, SIZE]) {
+    for (const dx of wrapOffsets(Math.min(s.x, s.cx, s.ex) - 2, Math.max(s.x, s.cx, s.ex) + 2)) {
       ctx.beginPath();
       ctx.moveTo(s.x + dx, s.y);
       ctx.quadraticCurveTo(s.cx + dx, s.cy, s.ex + dx, s.ey);
@@ -104,21 +112,32 @@ function drawStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[], rgb: stri
   }
 }
 
-/** Height (scratch mask, slightly blurred) -> tangent-space normal map via central differences. */
+/**
+ * Scratch mask -> tangent-space normal map: one Sobel pass over the red channel (typed arrays, wrapped
+ * edges). Scratches are grooves, so the height goes down where the mask is bright.
+ */
 function heightToNormal(height: CanvasRenderingContext2D, out: CanvasRenderingContext2D, strength: number): void {
   const src = height.getImageData(0, 0, SIZE, SIZE).data;
+  const h = new Float32Array(SIZE * SIZE);
+  for (let i = 0; i < h.length; i++) h[i] = src[i * 4] / 255;
   const img = out.createImageData(SIZE, SIZE);
   const dst = img.data;
-  const h = (x: number, y: number) => src[(((y + SIZE) % SIZE) * SIZE + ((x + SIZE) % SIZE)) * 4] / 255;
+  const k = strength / 4;
   for (let y = 0; y < SIZE; y++) {
+    const ym = ((y - 1 + SIZE) % SIZE) * SIZE;
+    const y0 = y * SIZE;
+    const yp = ((y + 1) % SIZE) * SIZE;
     for (let x = 0; x < SIZE; x++) {
-      // Scratches are grooves: height goes down where the mask is bright
-      const dx = (h(x - 1, y) - h(x + 1, y)) * -strength;
-      const dy = (h(x, y - 1) - h(x, y + 1)) * -strength;
-      const inv = 1 / Math.hypot(dx, dy, 1);
-      const i = (y * SIZE + x) * 4;
-      dst[i] = (dx * inv * 0.5 + 0.5) * 255;
-      dst[i + 1] = (dy * inv * 0.5 + 0.5) * 255;
+      const xm = (x - 1 + SIZE) % SIZE;
+      const xp = (x + 1) % SIZE;
+      const gx = h[ym + xp] + 2 * h[y0 + xp] + h[yp + xp] - h[ym + xm] - 2 * h[y0 + xm] - h[yp + xm];
+      const gy = h[yp + xm] + 2 * h[yp + x] + h[yp + xp] - h[ym + xm] - 2 * h[ym + x] - h[ym + xp];
+      const nx = gx * k;
+      const ny = gy * k;
+      const inv = 1 / Math.sqrt(nx * nx + ny * ny + 1);
+      const i = (y0 + x) * 4;
+      dst[i] = (nx * inv * 0.5 + 0.5) * 255;
+      dst[i + 1] = (ny * inv * 0.5 + 0.5) * 255;
       dst[i + 2] = (inv * 0.5 + 0.5) * 255;
       dst[i + 3] = 255;
     }
@@ -169,14 +188,32 @@ export function createBrassTextures(params: ScratchParams): BrassTextures {
       // Normal map from a soft scratch mask so the grooves catch light at grazing angles.
       height.fillStyle = '#000';
       height.fillRect(0, 0, SIZE, SIZE);
-      height.filter = 'blur(0.6px)';
       drawStrokes(height, strokes, '255,255,255', 1);
-      height.filter = 'none';
       heightToNormal(height, normal, 2.0);
 
       for (const t of [result.map, result.roughnessMap, result.normalMap] as Texture[]) t.needsUpdate = true;
     },
   };
-  result.regenerate(params);
+  // Cheap flat placeholders: the material compiles with all three maps from the first frame, and the
+  // expensive scratch pass runs after it (see scheduleScratches), only re-uploading same-size canvases.
+  color.fillStyle = '#ededed';
+  color.fillRect(0, 0, SIZE, SIZE);
+  rough.fillStyle = 'rgb(220,220,220)';
+  rough.fillRect(0, 0, SIZE, SIZE);
+  normal.fillStyle = 'rgb(128,128,255)';
+  normal.fillRect(0, 0, SIZE, SIZE);
+  void params;
   return result;
+}
+
+/** Runs the scratch generation once the page is idle after the first frame. */
+export function scheduleScratches(textures: BrassTextures, params: ScratchParams): void {
+  const run = () => {
+    const t0 = performance.now();
+    textures.regenerate(params);
+    if (import.meta.env.DEV) console.info(`[lantern] scratch textures ${Math.round(performance.now() - t0)} ms`);
+  };
+  const ric = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  if (ric) ric(run, { timeout: 500 });
+  else setTimeout(run, 50);
 }
