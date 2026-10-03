@@ -15,7 +15,6 @@ import { setupGui } from './gui';
 import { createFlame } from './lantern/flame';
 import { buildLantern } from './lantern/geometry';
 import { createMaterials } from './lantern/materials';
-import { scheduleScratches } from './lantern/brassTextures';
 import { setupPostFX } from './postfx';
 
 const renderer = new WebGLRenderer({ antialias: true });
@@ -81,6 +80,5 @@ renderer.setAnimationLoop((time) => {
       const now = performance.now();
       console.info(`[lantern] first frame: ${Math.round(now - startMs)} ms after script start, ${Math.round(now)} ms after navigation`);
     }
-    scheduleScratches(materials.scratches.textures, materials.scratches.params);
   }
 });
