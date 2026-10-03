@@ -194,26 +194,9 @@ export function createBrassTextures(params: ScratchParams): BrassTextures {
       for (const t of [result.map, result.roughnessMap, result.normalMap] as Texture[]) t.needsUpdate = true;
     },
   };
-  // Cheap flat placeholders: the material compiles with all three maps from the first frame, and the
-  // expensive scratch pass runs after it (see scheduleScratches), only re-uploading same-size canvases.
-  color.fillStyle = '#ededed';
-  color.fillRect(0, 0, SIZE, SIZE);
-  rough.fillStyle = 'rgb(220,220,220)';
-  rough.fillRect(0, 0, SIZE, SIZE);
-  normal.fillStyle = 'rgb(128,128,255)';
-  normal.fillRect(0, 0, SIZE, SIZE);
-  void params;
+  // Generated synchronously (~25-60 ms) so the first frame already shows the final brass.
+  const t0 = performance.now();
+  result.regenerate(params);
+  if (import.meta.env.DEV) console.info(`[lantern] scratch textures ${Math.round(performance.now() - t0)} ms`);
   return result;
-}
-
-/** Runs the scratch generation once the page is idle after the first frame. */
-export function scheduleScratches(textures: BrassTextures, params: ScratchParams): void {
-  const run = () => {
-    const t0 = performance.now();
-    textures.regenerate(params);
-    if (import.meta.env.DEV) console.info(`[lantern] scratch textures ${Math.round(performance.now() - t0)} ms`);
-  };
-  const ric = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
-  if (ric) ric(run, { timeout: 500 });
-  else setTimeout(run, 50);
 }
