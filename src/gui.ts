@@ -20,6 +20,16 @@ export function setupGui(
   brass.add(materials.brass, 'metalness', 0, 1, 0.01);
   brass.add(materials.brass, 'envMapIntensity', 0, 3, 0.01);
 
+  const { params: scratchParams, textures: scratchTextures } = materials.scratches;
+  const regenerate = () => scratchTextures.regenerate(scratchParams);
+  const scratches = gui.addFolder('Scratches');
+  scratches.add(scratchParams, 'count', 0, 1500, 10).onFinishChange(regenerate);
+  scratches.add(scratchParams, 'brightness', 0, 2, 0.05).onFinishChange(regenerate);
+  scratches.add(scratchParams, 'seed', 1, 999, 1).onFinishChange(regenerate);
+  scratches.add(materials.brass.normalScale, 'x', 0, 1, 0.01).name('relief').onChange((v: number) => {
+    materials.brass.normalScale.y = v;
+  });
+
   const glass = gui.addFolder('Glass');
   glass.add(materials.glass, 'transmission', 0, 1, 0.01);
   glass.add(materials.glass, 'ior', 1, 2.333, 0.01);
