@@ -9,6 +9,8 @@ import {
   PMREMGenerator,
   Scene,
   WebGLRenderer,
+  MeshBasicMaterial,
+  PlaneGeometry,
 } from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -22,6 +24,12 @@ export function setupEnvironment(scene: Scene, renderer: WebGLRenderer): Environ
   // Procedural HDR studio: RoomEnvironment is built from boxes + emissive panels, no files.
   const pmrem = new PMREMGenerator(renderer);
   const room = new RoomEnvironment();
+  // Tall, thin bright panel front-left (~20 deg up): a smooth barrel reflects it as one long vertical
+  // highlight down the left edge of the glass. A directional light would only give a point highlight.
+  const strip = new Mesh(new PlaneGeometry(0.6, 7), new MeshBasicMaterial({ color: new Color().setScalar(80) }));
+  strip.position.set(-1.2, 0.45, 0.9).normalize().multiplyScalar(6);
+  strip.lookAt(0, strip.position.y, 0);
+  room.add(strip);
   scene.environment = pmrem.fromScene(room, 0.04).texture;
   scene.environmentIntensity = 0.55;
   room.dispose();
@@ -29,14 +37,15 @@ export function setupEnvironment(scene: Scene, renderer: WebGLRenderer): Environ
 
   scene.background = new Color('#1a1a1e');
 
-  const key = new DirectionalLight('#fff4e6', 1.25);
-  key.position.set(0.9, 1.6, 0.7);
+  const key = new DirectionalLight('#fff4e6', 1.62);
+  // ~35 deg above the horizon, right-front: a longer shadow falling left-back, as in the reference
+  key.position.set(1.1, 0.95, 0.8);
   key.target.position.set(0, 0.15, 0);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
   const cam = key.shadow.camera;
-  cam.left = cam.bottom = -0.45;
-  cam.right = cam.top = 0.45;
+  cam.left = cam.bottom = -0.6;
+  cam.right = cam.top = 0.6;
   cam.near = 0.5;
   cam.far = 4;
   key.shadow.radius = 6;

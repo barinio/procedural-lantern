@@ -13,7 +13,6 @@ import { setupGui } from './gui';
 import { createFlame } from './lantern/flame';
 import { buildLantern } from './lantern/geometry';
 import { createMaterials } from './lantern/materials';
-import { scheduleScratches } from './lantern/brassTextures';
 import { setupPostFX } from './postfx';
 
 const renderer = new WebGLRenderer({ antialias: true });
@@ -65,14 +64,9 @@ window.addEventListener('resize', () => {
 
 const timer = new Timer();
 timer.connect(document);
-let firstFrame = true;
 renderer.setAnimationLoop((time) => {
   timer.update(time);
   flame.update(timer.getElapsed());
   controls.update(timer.getDelta());
   postfx.composer.render();
-  if (firstFrame) {
-    firstFrame = false;
-    scheduleScratches(materials.scratches.textures, materials.scratches.params);
-  }
 });
